@@ -1,6 +1,17 @@
 # Clash Node Inspector
 
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![tests](https://img.shields.io/badge/tests-39%20passed-brightgreen.svg)](#测试)
+
 > 一条命令，看清你的 Clash / mihomo 节点今天到底能不能用。
+
+仓库地址：https://github.com/minj65446-ops/clash-node-inspector
+
+```bash
+git clone https://github.com/minj65446-ops/clash-node-inspector.git
+cd clash-node-inspector
+```
 
 免费节点、共享订阅的通病是：**名字写着"香港"，实际出口在芬兰；延迟测出来 200ms，真实流量却一个字节都过不去。**
 
