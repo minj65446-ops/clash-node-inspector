@@ -68,6 +68,8 @@ python proxy_report.py --input nodes.json --output report.md
 python daily_inspect.py
 ```
 
+**Windows 用户**也可以直接双击 `一键巡检.cmd`：会自动设置 UTF-8 编码、检查 Python 是否安装、结束后暂停显示结果。
+
 会做三件事：
 
 1. 调用 `pipeline.py`，归档到 `reports/<日期>/`（`nodes.json`、`nodes.csv`、`report.md`）；
