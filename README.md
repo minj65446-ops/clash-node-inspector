@@ -18,6 +18,8 @@ cd clash-node-inspector
 这个工具从 Clash 控制器的 REST API 拉取节点，做真实延迟测试与地区识别，生成 Markdown 质量报告，
 并用每日巡检维护一份趋势表。纯 Python 标准库，零第三方依赖。
 
+![运行示例](docs/demo.png)
+
 ## 特性
 
 - 🔍 从 Clash / mihomo 外部控制器拉取节点（支持密钥认证）
@@ -143,9 +145,22 @@ python -m unittest discover -s tests -v
 ├── pipeline.py          # 一键：导出 → 报告（复用上面两个模块）
 ├── daily_inspect.py     # 每日巡检：归档 + 历史 + 趋势
 ├── sample_nodes.json    # 示例数据
-├── docs/SETUP.md        # 如何获取控制器密钥、常见问题
+├── docs/
+│   ├── SETUP.md         # 如何获取控制器密钥、常见问题
+│   └── demo.png         # 运行示例图
+├── .github/             # Issue / PR 模板
+├── CONTRIBUTING.md      # 贡献指南
+├── CHANGELOG.md         # 更新日志
 └── tests/               # 39 个验收测试
 ```
+
+## 参与贡献
+
+欢迎提 bug、建议或文档改进，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+- 报告问题：使用仓库的 Issue 模板
+- 更新记录：见 [CHANGELOG.md](CHANGELOG.md)
+- 核心约束：**只用 Python 标准库，不引入第三方依赖**
 
 ## 设计说明
 
