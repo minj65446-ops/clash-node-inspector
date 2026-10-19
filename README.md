@@ -136,6 +136,11 @@ python -m unittest discover -s tests -v
 39 个测试覆盖：Clash API 交互（内置假控制器，含鉴权/异常/401）、地区识别、排序、并发上限、
 重试语义、CSV/JSON/报告格式、退出码、pipeline 编排。
 
+## 常见问题
+
+遇到 401、控制器连不上、地区显示 `UNKNOWN`、中文乱码、退出码 3 等问题，先看
+[docs/FAQ.md](docs/FAQ.md)。
+
 ## 项目结构
 
 ```
