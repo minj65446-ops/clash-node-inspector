@@ -1,0 +1,8 @@
+[
+  {"name": "HK-01", "region": "HK", "delay_ms": 200, "alive": true},
+  {"name": "HK-02", "region": "HK", "delay_ms": 210, "alive": true},
+  {"name": "SG-01", "region": "SG", "delay_ms": 300, "alive": true},
+  {"name": "SG-02", "region": "SG", "delay_ms": null, "alive": false},
+  {"name": "JP-01", "region": "JP", "delay_ms": 250, "alive": true},
+  {"name": "JP-02", "region": "JP", "delay_ms": 900, "alive": false}
+]

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+_tmp_tests/
+out/
+reports/
+.clash_secret
+.venv/
+venv/
+.env
+*.log
+.DS_Store
