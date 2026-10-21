@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+暂无。
+
+## [1.1.0] - 2026-10-21
+
 ### 新增
 
 - `clash_export.py` 增加策略过滤：`--dedupe`（按名称后缀归并重复节点）、
@@ -15,6 +19,7 @@
 - `proxy_report.py` 增加 `--json`：输出与 Markdown 报告同源的机器可读报告
 - 测试从 39 个增加到 59 个（新增 `tests/test_filters.py`，覆盖指纹归一、去重、过滤、裁剪）
 - Windows 一键运行脚本 `一键巡检.cmd`：双击即可执行每日巡检，自动处理编码与 Python 检查
+- 新增 `docs/TUTORIAL.md`：中文分步教程（从拿密钥到自动巡检、清理节点）
 - `docs/FAQ.md`：11 个常见问题的排查方法
 - README：增加运行示例图、FAQ 入口、项目结构与贡献说明
 
@@ -47,4 +52,5 @@
 - 控制器只支持本机访问（`127.0.0.1`），不支持远程
 - 地区识别依赖节点名关键字，未命中时显示 `UNKNOWN`
 
+[1.1.0]: https://github.com/minj65446-ops/clash-node-inspector/releases/tag/v1.1.0
 [1.0.0]: https://github.com/minj65446-ops/clash-node-inspector/releases/tag/v1.0.0

@@ -179,6 +179,8 @@ python -m unittest discover -s tests -v
 
 ## 常见问题
 
+第一次用，先看 **[中文使用教程](docs/TUTORIAL.md)**（从拿密钥到自动巡检、清理节点，分步截图级说明）。
+
 遇到 401、控制器连不上、地区显示 `UNKNOWN`、中文乱码、退出码 3 等问题，先看
 [docs/FAQ.md](docs/FAQ.md)。
 
@@ -194,6 +196,7 @@ python -m unittest discover -s tests -v
 ├── daily_inspect.py     # 每日巡检：归档 + 历史 + 趋势
 ├── sample_nodes.json    # 示例数据
 ├── docs/
+│   ├── TUTORIAL.md      # 中文使用教程（分步）
 │   ├── SETUP.md         # 如何获取控制器密钥、常见问题
 │   └── demo.png         # 运行示例图
 ├── .github/             # Issue / PR 模板
