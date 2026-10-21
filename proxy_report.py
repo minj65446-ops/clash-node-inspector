@@ -138,8 +138,48 @@ def build_report(items: list[Any]) -> str:
     return report
 
 
-def _reject_nonstandard_constant(value: str) -> None:
-    raise ValueError(f"non-standard JSON constant {value}")
+def build_report_data(items: list[Any]) -> dict[str, Any]:
+    """Build the machine-readable form of the report (mirrors build_report)."""
+    nodes = _normalize_nodes(items)
+    total = len(nodes)
+    alive_nodes = [node for node in nodes if node["alive"]]
+
+    regions: dict[str, list[dict[str, Any]]] = {}
+    for node in nodes:
+        regions.setdefault(node["region"], []).append(node)
+
+    region_rows = []
+    for region, region_nodes in sorted(regions.items()):
+        region_alive = sum(1 for node in region_nodes if node["alive"])
+        region_rows.append(
+            {
+                "region": region,
+                "total": len(region_nodes),
+                "alive": region_alive,
+                "alive_rate": _format_rate(region_alive, len(region_nodes)),
+                "median_delay": _median_delay(region_nodes),
+            }
+        )
+
+    recommendations = [
+        {"name": node["name"], "region": node["region"], "delay_ms": node["delay_ms"]}
+        for node in sorted(
+            (n for n in nodes if n["alive"] and _is_integer(n["delay_ms"])),
+            key=lambda n: n["delay_ms"],
+        )[:3]
+    ]
+
+    return {
+        "total": total,
+        "alive": len(alive_nodes),
+        "alive_rate": _format_rate(len(alive_nodes), total),
+        "median_delay": _median_delay(nodes),
+        "regions": region_rows,
+        "recommendations": recommendations,
+    }
+
+
+def _reject_nonstandard_constant(value: str) -> None:    raise ValueError(f"non-standard JSON constant {value}")
 
 
 def _error(message: str) -> int:
@@ -151,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="path to the node JSON file")
     parser.add_argument("--output", help="path for the Markdown report (default: stdout)")
+    parser.add_argument("--json", action="store_true",
+                        help="output machine-readable JSON instead of Markdown")
     args = parser.parse_args(argv)
 
     try:
@@ -164,7 +206,12 @@ def main(argv: list[str] | None = None) -> int:
     if not isinstance(data, list):
         return _error("input JSON top level must be an array")
 
-    report = build_report(data)
+    if args.json:
+        report = json.dumps(
+            build_report_data(data), ensure_ascii=False, indent=2
+        ) + "\n"
+    else:
+        report = build_report(data)
     if args.output is None:
         sys.stdout.write(report)
         return 0
