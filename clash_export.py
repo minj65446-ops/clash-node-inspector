@@ -113,6 +113,74 @@ def test_delay(base, secret, name, delay_url, timeout_ms):
 
 
 
+SUFFIX_RE = re.compile(r"\s*(\(\d+\)|#\d+|-\d+)\s*$")
+
+
+def name_fingerprint(name):
+    """同一节点的不同副本（如 "X (2)" / "X #2"）归一到同一个指纹。
+
+    注意：Clash 控制器不返回 server/port，因此无法按真实地址去重，
+    只能按名称后缀做启发式归并。
+    """
+    return SUFFIX_RE.sub("", name.strip()).casefold()
+
+
+def dedupe_nodes(nodes):
+    """按名称指纹去重，保留"没有后缀且延迟最低"的代表，返回 (保留, 剔除)。"""
+    groups = {}
+    order = []
+    for node in nodes:
+        key = name_fingerprint(node["name"])
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(node)
+
+    kept, dropped = [], []
+    for key in order:
+        candidates = groups[key]
+        if len(candidates) == 1:
+            kept.append(candidates[0])
+            continue
+
+        def rank(node):
+            has_suffix = bool(SUFFIX_RE.search(node["name"].strip()))
+            delay = node["delay_ms"] if isinstance(node["delay_ms"], int) else 10 ** 9
+            return (has_suffix, delay, node["name"])
+
+        candidates = sorted(candidates, key=rank)
+        kept.append(candidates[0])
+        dropped.extend(candidates[1:])
+    kept.sort(key=lambda n: n["name"])
+    return kept, dropped
+
+
+def parse_region_set(text):
+    return {item.strip().upper() for item in (text or "").split(",") if item.strip()}
+
+
+def apply_filters(nodes, keep_regions=None, exclude_regions=None,
+                  max_delay=None, only_alive=False):
+    """按地区白/黑名单、延迟上限、存活状态过滤，返回 (保留, 剔除列表[(node, 原因)])。"""
+    kept, dropped = [], []
+    for node in nodes:
+        reason = None
+        if keep_regions and node["region"] not in keep_regions:
+            reason = "地区不在白名单"
+        elif exclude_regions and node["region"] in exclude_regions:
+            reason = "地区被排除"
+        elif not node["alive"]:
+            if max_delay is not None or only_alive:
+                reason = "不可用"
+        elif max_delay is not None and (node["delay_ms"] or 0) > max_delay:
+            reason = "延迟超过 %d ms" % max_delay
+        if reason:
+            dropped.append((node, reason))
+        else:
+            kept.append(node)
+    return kept, dropped
+
+
 def write_csv(nodes, path):
     """把节点列表写成 CSV（name,region,delay_ms,alive）。"""
     with open(path, "w", encoding="utf-8", newline="") as f:
@@ -138,6 +206,16 @@ def main(argv=None):
     parser.add_argument("--timeout", type=int, default=5000)
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--retry", type=int, default=0)
+    parser.add_argument("--dedupe", action="store_true",
+                        help="按名称后缀归并重复节点（如 X 与 X (2)），保留延迟最低者")
+    parser.add_argument("--keep-region", default="",
+                        help="只保留这些地区，逗号分隔，如 HK,JP,SG")
+    parser.add_argument("--exclude-region", default="",
+                        help="排除这些地区，逗号分隔，如 RU,CN")
+    parser.add_argument("--max-delay", type=int, default=None,
+                        help="延迟上限（ms）；会同时剔除不可用节点")
+    parser.add_argument("--only-alive", action="store_true", help="只保留测速成功的节点")
+    parser.add_argument("--stats", action="store_true", help="把过滤统计输出到 stderr")
     args = parser.parse_args(argv)
 
     if not 1 <= args.concurrency <= 16:
@@ -166,6 +244,12 @@ def main(argv=None):
             continue
         nodes.append({"name": name, "region": infer_region(name), "delay_ms": None, "alive": False})
     nodes.sort(key=lambda n: n["name"])
+
+    raw_total = len(nodes)
+    if args.dedupe:
+        nodes, deduped = dedupe_nodes(nodes)
+    else:
+        deduped = []
 
     if args.test_delay:
         def test_delay_with_retry(name):
@@ -196,6 +280,24 @@ def main(argv=None):
                             raise
         except AuthError:
             return fail("延迟测试时认证失败（HTTP 401），请检查 --secret")
+
+    nodes, filtered = apply_filters(
+        nodes,
+        keep_regions=parse_region_set(args.keep_region),
+        exclude_regions=parse_region_set(args.exclude_region),
+        max_delay=args.max_delay,
+        only_alive=args.only_alive,
+    )
+
+    if args.stats:
+        no_delay = sum(1 for n in nodes if not n["alive"])
+        print(
+            "过滤统计：原始 %d → 保留 %d（去重 %d，策略剔除 %d，其中不可用 %d）"
+            % (raw_total, len(nodes), len(deduped), len(filtered), no_delay),
+            file=sys.stderr,
+        )
+        for node, reason in filtered:
+            print("  剔除 %s（%s）" % (node["name"], reason), file=sys.stderr)
 
     if args.csv:
         try:

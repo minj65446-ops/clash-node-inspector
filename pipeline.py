@@ -42,6 +42,15 @@ def main(argv=None):
     parser.add_argument("--retry", type=int, default=0)
     parser.add_argument("--timeout", type=int, default=5000)
     parser.add_argument("--csv", action="store_true", help="额外输出 out/nodes.csv")
+    parser.add_argument("--dedupe", action="store_true", help="按名称后缀归并重复节点")
+    parser.add_argument("--keep-region", default="", help="只保留这些地区，逗号分隔")
+    parser.add_argument("--exclude-region", default="", help="排除这些地区，逗号分隔")
+    parser.add_argument("--max-delay", type=int, default=None, help="延迟上限（ms）")
+    parser.add_argument("--only-alive", action="store_true", help="只保留测速成功的节点")
+    parser.add_argument("--prune-profile", default=None,
+                        help="按巡检结果裁剪该 Clash 配置文件")
+    parser.add_argument("--prune-out", default=None,
+                        help="裁剪结果输出路径（默认 <profile>.pruned.yaml）")
     args = parser.parse_args(argv)
 
     project_dir = Path(__file__).resolve().parent
@@ -71,6 +80,16 @@ def main(argv=None):
         export_args.append("--test-delay")
     if args.csv:
         export_args += ["--csv", str(output_dir / "nodes.csv")]
+    if args.dedupe:
+        export_args.append("--dedupe")
+    if args.keep_region:
+        export_args += ["--keep-region", args.keep_region]
+    if args.exclude_region:
+        export_args += ["--exclude-region", args.exclude_region]
+    if args.max_delay is not None:
+        export_args += ["--max-delay", str(args.max_delay)]
+    if args.only_alive:
+        export_args.append("--only-alive")
 
     try:
         export_status = export_module.main(export_args)
@@ -107,6 +126,26 @@ def main(argv=None):
         return 2
 
     print("导出 %d 个节点（存活 %d），报告: %s" % (total, alive, report_path))
+
+    if args.prune_profile:
+        try:
+            prune_module = _load_module(
+                "_clash_prune_pipeline", project_dir / "clash_prune.py"
+            )
+        except (OSError, ImportError, SyntaxError) as exc:
+            return _error("无法加载裁剪模块: %s" % exc)
+        prune_args = [
+            "--profile", args.prune_profile,
+            "--nodes", str(nodes_path),
+        ]
+        if args.prune_out:
+            prune_args += ["--out", args.prune_out]
+        try:
+            prune_status = prune_module.main(prune_args)
+        except SystemExit as exc:
+            prune_status = exc.code if isinstance(exc.code, int) else 2
+        if prune_status != 0:
+            return 2
     return 0
 
 
