@@ -11,7 +11,7 @@
 - 新增 `clash_prune.py`：按巡检结果裁剪 Clash 配置——删除失效节点、清理悬空成员、
   删掉变空的策略组；支持 `--dry-run` / `--in-place`（自动备份）
 - 新增 `clash_profile.py`：文本级解析配置里的 `server:port`；`--dedupe --profile` 按真实出口去重
-- `pipeline.py` 增加 `--prune-profile` / `--prune-out`，一条命令走完「测速 → 报告 → 裁剪」
+- `pipeline.py` 增加 `--prune-profile` / `--prune-out` / `--prune-in-place`，一条命令走完「测速 → 报告 → 裁剪」
 - `proxy_report.py` 增加 `--json`：输出与 Markdown 报告同源的机器可读报告
 - 测试从 39 个增加到 59 个（新增 `tests/test_filters.py`，覆盖指纹归一、去重、过滤、裁剪）
 - Windows 一键运行脚本 `一键巡检.cmd`：双击即可执行每日巡检，自动处理编码与 Python 检查

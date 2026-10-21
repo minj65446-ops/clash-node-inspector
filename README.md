@@ -78,6 +78,7 @@ python pipeline.py --secret <密钥> --test-delay --concurrency 8 \
   --dedupe --only-alive --max-delay 500 \
   --prune-profile profiles/free_nodes.yaml --prune-out profiles/free_nodes.pruned.yaml
 # --prune-profile 同时充当去重的 server:port 来源，无需重复指定
+# 想直接改原文件：把 --prune-out ... 换成 --prune-in-place（自动备份）
 ```
 
 也可以用 `clash_export.py` 单独过滤，再手动裁剪：

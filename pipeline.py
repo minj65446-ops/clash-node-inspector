@@ -54,7 +54,11 @@ def main(argv=None):
                         help="按巡检结果裁剪该 Clash 配置文件")
     parser.add_argument("--prune-out", default=None,
                         help="裁剪结果输出路径（默认 <profile>.pruned.yaml）")
+    parser.add_argument("--prune-in-place", action="store_true",
+                        help="直接覆盖 --prune-profile 指定的文件（自动备份）")
     args = parser.parse_args(argv)
+    if args.prune_in_place and not args.prune_profile:
+        parser.error("--prune-in-place 需要同时指定 --prune-profile")
 
     project_dir = Path(__file__).resolve().parent
     output_dir = Path(args.output_dir).resolve()
@@ -144,7 +148,9 @@ def main(argv=None):
             "--profile", args.prune_profile,
             "--nodes", str(nodes_path),
         ]
-        if args.prune_out:
+        if args.prune_in_place:
+            prune_args.append("--in-place")
+        elif args.prune_out:
             prune_args += ["--out", args.prune_out]
         try:
             prune_status = prune_module.main(prune_args)
