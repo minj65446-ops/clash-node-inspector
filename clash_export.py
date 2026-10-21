@@ -125,12 +125,17 @@ def name_fingerprint(name):
     return SUFFIX_RE.sub("", name.strip()).casefold()
 
 
-def dedupe_nodes(nodes):
-    """按名称指纹去重，保留"没有后缀且延迟最低"的代表，返回 (保留, 剔除)。"""
+def dedupe_nodes(nodes, identities=None):
+    """去重：有 server:port 身份时按真实地址，否则退回名称指纹。
+
+    返回 (保留, 剔除)。
+    """
+    identities = identities or {}
     groups = {}
     order = []
     for node in nodes:
-        key = name_fingerprint(node["name"])
+        identity = identities.get(node["name"])
+        key = identity if identity else "name:" + name_fingerprint(node["name"])
         if key not in groups:
             groups[key] = []
             order.append(key)
@@ -153,6 +158,20 @@ def dedupe_nodes(nodes):
         dropped.extend(candidates[1:])
     kept.sort(key=lambda n: n["name"])
     return kept, dropped
+
+
+def load_identities(profile_path):
+    """从配置文件读出 节点名 → server:port，用于按真实出口去重。"""
+    import importlib.util
+
+    module_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "clash_profile.py")
+    spec = importlib.util.spec_from_file_location("_clash_profile_export", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError("无法加载 clash_profile.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.identity_map_from_file(profile_path)
 
 
 def parse_region_set(text):
@@ -208,6 +227,8 @@ def main(argv=None):
     parser.add_argument("--retry", type=int, default=0)
     parser.add_argument("--dedupe", action="store_true",
                         help="按名称后缀归并重复节点（如 X 与 X (2)），保留延迟最低者")
+    parser.add_argument("--profile", default=None,
+                        help="配合 --dedupe：从该配置文件读 server:port，按真实出口去重")
     parser.add_argument("--keep-region", default="",
                         help="只保留这些地区，逗号分隔，如 HK,JP,SG")
     parser.add_argument("--exclude-region", default="",
@@ -247,7 +268,13 @@ def main(argv=None):
 
     raw_total = len(nodes)
     if args.dedupe:
-        nodes, deduped = dedupe_nodes(nodes)
+        identities = {}
+        if args.profile:
+            try:
+                identities = load_identities(args.profile)
+            except (OSError, ImportError) as exc:
+                return fail("无法读取 --profile 指定的配置: %s" % exc)
+        nodes, deduped = dedupe_nodes(nodes, identities)
     else:
         deduped = []
 

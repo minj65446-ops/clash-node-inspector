@@ -2,7 +2,7 @@
 
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
-[![tests](https://img.shields.io/badge/tests-56%20passed-brightgreen.svg)](#测试)
+[![tests](https://img.shields.io/badge/tests-59%20passed-brightgreen.svg)](#测试)
 
 > 一条命令，看清你的 Clash / mihomo 节点今天到底能不能用。
 
@@ -29,9 +29,10 @@ cd clash-node-inspector
 - 📊 Markdown 报告：存活率、各地区的存活率与中位延迟、Top3 推荐节点
 - 🧹 策略过滤：`--dedupe` 归并重复节点，`--keep-region` / `--exclude-region` / `--max-delay` / `--only-alive`
 - ✂️ 配置裁剪：`clash_prune.py` 按巡检结果删掉失效节点、清理变空的策略组（绝不改注释与其它分节）
+- 🎯 按真实出口去重：`--profile` 读配置里的 `server:port`，同机换名也能识别
 - 🗂 每日巡检：按日期归档、维护 `history.jsonl` 与趋势表 `index.md`、低于阈值告警
 - 📄 CSV 导出，方便导入 Excel
-- ✅ 56 个自动化验收测试
+- ✅ 59 个自动化验收测试
 
 ## 环境要求
 
@@ -76,6 +77,7 @@ python proxy_report.py --input nodes.json --json --output report.json
 python pipeline.py --secret <密钥> --test-delay --concurrency 8 \
   --dedupe --only-alive --max-delay 500 \
   --prune-profile profiles/free_nodes.yaml --prune-out profiles/free_nodes.pruned.yaml
+# --prune-profile 同时充当去重的 server:port 来源，无需重复指定
 ```
 
 也可以用 `clash_export.py` 单独过滤，再手动裁剪：
@@ -89,12 +91,14 @@ python clash_prune.py --profile profiles/free_nodes.yaml --nodes nodes.json --in
 ```
 
 - `--dedupe`：把 `X` 与 `X (2)` / `X #2` 归并，保留"无后缀且延迟最低"的那个
+- `--profile <yaml>`：配合 `--dedupe`，从配置里读 `server:port`，按**真实出口**去重
+  （`NL_speednode_0004` 与 `0005` 同机不同名也能识别）
 - `--stats`：把原始数、保留数、每条剔除原因打到 stderr
 - `--in-place`：覆盖前自动备份成 `<profile>.bak-<时间戳>`
 - `clash_prune.py` 只做文本级最小手术：删除失效 `proxies` 条目、清理 `proxy-groups` 里的悬空成员、删掉变空的组；注释、缩进、其它分节逐字节保留
 
-> 已知限制：Clash 控制器不返回 `server`/`port`，所以去重只能按名称后缀做启发式归并；
-> 同一台服务器换了名字（如 `NL_speednode_0004` 与 `0005`）识别不出来。
+> 去重依据的优先级：`--profile` 能解析出 `server:port` 时按真实出口；解析不到（节点不在该配置里、
+> 或用了 `use:` 引用远程 provider）时退回名称后缀归并。配置文件解析是文本级的，不依赖 YAML 库。
 
 ## 每日巡检
 
@@ -169,7 +173,7 @@ echo "<你的密钥>" > .clash_secret
 python -m unittest discover -s tests -v
 ```
 
-56 个测试覆盖：Clash API 交互（内置假控制器，含鉴权/异常/401）、地区识别、排序、并发上限、
+59 个测试覆盖：Clash API 交互（内置假控制器，含鉴权/异常/401）、地区识别、排序、并发上限、
 重试语义、CSV/JSON/报告格式、退出码、pipeline 编排、去重与过滤策略、配置裁剪。
 
 ## 常见问题
@@ -185,6 +189,7 @@ python -m unittest discover -s tests -v
 ├── proxy_report.py      # 节点 JSON → Markdown 质量报告
 ├── pipeline.py          # 一键：导出 → 报告（可选裁剪配置）
 ├── clash_prune.py       # 按巡检结果裁剪 Clash 配置（删失效节点/清空组）
+├── clash_profile.py     # 从配置文本读 server:port，供按真实出口去重
 ├── daily_inspect.py     # 每日巡检：归档 + 历史 + 趋势
 ├── sample_nodes.json    # 示例数据
 ├── docs/

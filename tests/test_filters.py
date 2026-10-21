@@ -151,6 +151,42 @@ class PruneTests(unittest.TestCase):
         self.assertTrue(result.rstrip().endswith("- MATCH,PROXY"))
 
 
+class ProfileIdentityTests(unittest.TestCase):
+    TEXT = """\
+proxies:
+- {name: "A", server: 1.1.1.1, port: 443, type: http}
+- name: "B"
+  server: "2.2.2.2"
+  port: 8443
+  type: vless
+- {name: "C", server: 1.1.1.1, port: 443, type: http}
+- {name: "D", server: 3.3.3.3, port: 9002, type: http}
+"""
+
+    def setUp(self):
+        self.profile = _load("_profile_under_test", "clash_profile.py")
+
+    def test_identity_map_parses_flow_and_block(self):
+        mapping = self.profile.identity_map(self.TEXT)
+        self.assertEqual(mapping["A"], "1.1.1.1:443")
+        self.assertEqual(mapping["B"], "2.2.2.2:8443")
+        self.assertEqual(len(mapping), 4)
+
+    def test_dedupe_by_real_server_merges_renamed_nodes(self):
+        identities = self.profile.identity_map(self.TEXT)
+        nodes = [node("A", delay=300), node("B", delay=100),
+                 node("C", delay=150), node("D", delay=200)]
+        kept, dropped = export.dedupe_nodes(nodes, identities)
+        names = [n["name"] for n in kept]
+        self.assertEqual(sorted(names), ["B", "C", "D"])
+        self.assertEqual([n["name"] for n in dropped], ["A"])
+
+    def test_missing_profile_falls_back_to_name_fingerprint(self):
+        nodes = [node("X (2)", delay=100), node("X", delay=300)]
+        kept, _ = export.dedupe_nodes(nodes, {})
+        self.assertEqual([n["name"] for n in kept], ["X"])
+
+
 class ReportJsonTests(unittest.TestCase):
     def test_json_shape_matches_markdown(self):
         report = _load("_report_under_test", "proxy_report.py")

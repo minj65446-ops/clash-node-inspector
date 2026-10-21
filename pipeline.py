@@ -43,6 +43,9 @@ def main(argv=None):
     parser.add_argument("--timeout", type=int, default=5000)
     parser.add_argument("--csv", action="store_true", help="额外输出 out/nodes.csv")
     parser.add_argument("--dedupe", action="store_true", help="按名称后缀归并重复节点")
+    parser.add_argument("--profile", default=None,
+                        help="配合 --dedupe：从该配置读 server:port 按真实出口去重"
+                             "（默认复用 --prune-profile）")
     parser.add_argument("--keep-region", default="", help="只保留这些地区，逗号分隔")
     parser.add_argument("--exclude-region", default="", help="排除这些地区，逗号分隔")
     parser.add_argument("--max-delay", type=int, default=None, help="延迟上限（ms）")
@@ -82,6 +85,9 @@ def main(argv=None):
         export_args += ["--csv", str(output_dir / "nodes.csv")]
     if args.dedupe:
         export_args.append("--dedupe")
+        identity_source = args.profile or args.prune_profile
+        if identity_source:
+            export_args += ["--profile", identity_source]
     if args.keep_region:
         export_args += ["--keep-region", args.keep_region]
     if args.exclude_region:
